@@ -39,16 +39,16 @@ const MovieActionTooltip = () => {
                 onClick={() => setShowTooltip(!showTooltip)}
                 className="relative hover:text-red-500 transition-colors duration-300"
             >
-                <FontAwesomeIcon icon={faPlus} className='text-sm text-gray-300 hover:text-red-500' />
+                <FontAwesomeIcon icon={faPlus} className='text-sm text-zinc-300 hover:text-red-500' />
             </button>
 
             {showTooltip && (
-                <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 bg-gray-900/90 backdrop-blur-sm rounded-lg p-1 shadow-lg border border-gray-700 z-50 animate-fadeIn">
+                <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 bg-zinc-900/90 backdrop-blur-sm rounded-lg p-1 shadow-lg border-2 border-zinc-700 z-50 animate-fadeIn">
                     <div className="flex space-x-2 p-1">
                         <button
                             className={`w-8 h-8 rounded-full flex items-center justify-center transition-all duration-300 ${activeButtons.heart
                                 ? 'bg-red-600 text-white'
-                                : 'bg-gray-800 text-gray-400 hover:bg-gray-700'
+                                : 'bg-zinc-800 text-zinc-400 hover:bg-zinc-700'
                                 }`}
                             onClick={() => toggleButton('heart')}
                             title="Tambah ke Favorit"
@@ -59,7 +59,7 @@ const MovieActionTooltip = () => {
                         <button
                             className={`w-8 h-8 rounded-full flex items-center justify-center transition-all duration-300 ${activeButtons.eye
                                 ? 'bg-blue-600 text-white'
-                                : 'bg-gray-800 text-gray-400 hover:bg-gray-700'
+                                : 'bg-zinc-800 text-zinc-400 hover:bg-zinc-700'
                                 }`}
                             onClick={() => toggleButton('eye')}
                             title="Tandai Sudah Ditonton"
@@ -70,7 +70,7 @@ const MovieActionTooltip = () => {
                         <button
                             className={`w-8 h-8 rounded-full flex items-center justify-center transition-all duration-300 ${activeButtons.clock
                                 ? 'bg-green-600 text-white'
-                                : 'bg-gray-800 text-gray-400 hover:bg-gray-700'
+                                : 'bg-zinc-800 text-zinc-400 hover:bg-zinc-700'
                                 }`}
                             onClick={() => toggleButton('clock')}
                             title="Tambah ke Watchlist"
@@ -81,7 +81,7 @@ const MovieActionTooltip = () => {
 
                     {/* Panah tooltip */}
                     <div className="absolute left-1/2 bottom-0 transform -translate-x-1/2 translate-y-full">
-                        <div className="w-3 h-3 bg-gray-900 rotate-45 transform -translate-y-1/2 border-r border-b border-gray-700"></div>
+                        <div className="w-3 h-3 bg-zinc-900 rotate-45 transform -translate-y-1/2 border-r border-b border-zinc-700"></div>
                     </div>
                 </div>
             )}
