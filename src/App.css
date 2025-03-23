@@ -1,0 +1,84 @@
+.custom-dots {
+    position: absolute;
+    bottom: 8%;
+    left: 50%;
+    transform: translateX(-50%);
+    width: auto;
+    text-align: center;
+}
+
+.custom-dots li {
+    list-style: none;
+    margin: 0 3px;
+    display: inline-block;
+}
+
+.custom-dots li button {
+    color: transparent;
+    width: 12px;
+    height: 4px;
+    border-radius: 20%;
+    background-color: #898989;
+    opacity: 40%;
+    transition: 0.5s ease-in-out;
+    -webkit-transition: 0.5s ease-in-out;
+    -moz-transition: 0.5s ease-in-out;
+    -ms-transition: 0.5s ease-in-out;
+    -o-transition: 0.5s ease-in-out;
+    -webkit-border-radius: 20%;
+    -moz-border-radius: 20%;
+    -ms-border-radius: 20%;
+    -o-border-radius: 20%;
+}
+
+.custom-dots li button:hover {
+    background-color: white;
+    opacity: 60%;
+}
+
+.custom-dots li.slick-active button {
+    width: 30px;
+    opacity: 100%;
+    background-color: white;
+    border-radius: 20px;
+    -webkit-border-radius: 20px;
+    -moz-border-radius: 20px;
+    -ms-border-radius: 20px;
+    -o-border-radius: 20px;
+}
+
+/* Media queries for responsive dots */
+@media (min-width: 768px) {
+    .custom-dots li button {
+        width: 15px;
+        height: 5px;
+    }
+
+    .custom-dots li {
+        margin: 0 5px;
+    }
+
+    .custom-dots li.slick-active button {
+        width: 40px;
+    }
+}
+
+/* For smaller mobile screens */
+@media (max-width: 480px) {
+    .custom-dots {
+        bottom: 5%;
+    }
+
+    .custom-dots li button {
+        width: 10px;
+        height: 3px;
+    }
+
+    .custom-dots li {
+        margin: 0 2px;
+    }
+
+    .custom-dots li.slick-active button {
+        width: 24px;
+    }
+}
