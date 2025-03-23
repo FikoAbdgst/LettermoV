@@ -4,6 +4,7 @@ import axios from 'axios';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faFilm, faTv, faStar, faSpinner, faPlay, faPlus } from '@fortawesome/free-solid-svg-icons';
 import Navigation from '../layout/Navigation';
+import MovieActionTooltip from '../layout/home/MovieActionTooltip';
 
 const SearchResults = () => {
     const [searchParams] = useSearchParams();
@@ -193,9 +194,9 @@ const SearchResults = () => {
                                                     {year}
                                                 </div>
                                                 <div className='flex justify-center items-center gap-1 sm:gap-2'>
-                                                    <button className="hidden sm:block">
-                                                        <FontAwesomeIcon icon={faPlus} className='text-xs sm:text-sm text-gray-700' />
-                                                    </button>
+                                                    <div className="hidden sm:block">
+                                                        <MovieActionTooltip />
+                                                    </div>
 
                                                     <div className="text-xs sm:text-sm text-yellow-500 font-bold ml-1">
                                                         <FontAwesomeIcon icon={faStar} className="pr-0.5 sm:pr-1" />
