@@ -1,7 +1,7 @@
 import React from 'react'
-import Carousel from './Main/Carousel'
-import OneLine from './Main/OneLine'
-import TwoLine from './Main/TwoLine'
+import Carousel from './home/Carousel'
+import OneLine from './home/OneLine'
+import TwoLine from './home/TwoLine'
 
 const Section = () => {
     return (

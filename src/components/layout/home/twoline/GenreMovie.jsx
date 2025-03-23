@@ -53,7 +53,7 @@ const GenreMovie = ({ currentSlide, slidesGenre, selectedCategory, setCurrentSli
                             {slide.map((genre) => (
                                 <button
                                     key={genre.id}
-                                    className={`whitespace-nowrap bg-zinc-800 text-xs md:text-sm text-center w-24 md:w-36 h-8 md:h-10 rounded-lg text-white font-medium mb-2 md:mb-0 md:mr-2 transition duration-300 ease-in-out hover:bg-red-800 border-none ${selectedCategory.includes(genre.name) ? 'bg-red-800 border-none' : 'border-transparent'}`}
+                                    className={`whitespace-nowrap bg-zinc-800 text-xs md:text-sm text-center w-24 md:w-36 h-8 md:h-10 rounded-lg text-white font-medium mb-2 md:mb-0 md:mr-2 transition duration-300 ease-in-out hover:bg-red-800 border-none ${selectedCategory.includes(genre.name) ? 'bg-red-500 border-none' : 'border-transparent'}`}
                                     onClick={() => handleCategoryClick(genre.name)}
                                 >
                                     {genre.name}

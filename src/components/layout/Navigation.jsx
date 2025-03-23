@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import Search from './Client/Search';
+import Search from './navigation/Search';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faBars, faTimes, faFilm, faTv, faHome, faHeart } from '@fortawesome/free-solid-svg-icons';
 
@@ -49,7 +49,7 @@ const Navigation = () => {
                     </div>
 
                     {/* Desktop Navigation */}
-                    <nav className='hidden md:flex items-center'>
+                    <nav className='hidden md:flex items-center gap-20'>
                         <ul className='flex items-center h-full gap-8'>
                             <li>
                                 <Link to="/" className='text-white hover:text-red-500 transition-colors duration-300 flex items-center gap-2 py-2'>
@@ -76,25 +76,25 @@ const Navigation = () => {
                                 </Link>
                             </li>
                         </ul>
+                        {/* Search & User */}
+                        <div className='flex items-center gap-3 md:gap-6'>
+                            <Search />
+
+                            <button className='bg-red-600 hover:bg-red-700 text-white py-1.5 px-4 md:py-2 md:px-5 text-sm rounded-full transition-all duration-300 hidden md:block'>
+                                Sign In
+                            </button>
+
+                            {/* Mobile menu button */}
+                            <button
+                                className="md:hidden text-white p-2 mobile-menu-button"
+                                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+                                aria-label="Toggle mobile menu"
+                            >
+                                <FontAwesomeIcon icon={mobileMenuOpen ? faTimes : faBars} className="text-xl" />
+                            </button>
+                        </div>
                     </nav>
 
-                    {/* Search & User */}
-                    <div className='flex items-center gap-3 md:gap-6'>
-                        <Search />
-
-                        <button className='bg-red-600 hover:bg-red-700 text-white py-1.5 px-4 md:py-2 md:px-5 text-sm rounded-full transition-all duration-300 hidden md:block'>
-                            Sign In
-                        </button>
-
-                        {/* Mobile menu button */}
-                        <button
-                            className="md:hidden text-white p-2 mobile-menu-button"
-                            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-                            aria-label="Toggle mobile menu"
-                        >
-                            <FontAwesomeIcon icon={mobileMenuOpen ? faTimes : faBars} className="text-xl" />
-                        </button>
-                    </div>
                 </div>
             </div>
 

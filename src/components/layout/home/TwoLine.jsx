@@ -1,15 +1,15 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
-import GenreMovie from './Client/GenreMovie';
-import OneMovieList2 from './Client/OneMovieList2';
-import DropdownRelease from './Client/DropdownRelease';
-import DropdownYear from './Client/DropdownYear';
-import DropdownAlphabet from './Client/DropdownAlphabet';
+import GenreMovie from './twoline/GenreMovie';
+import OneMovieList2 from './twoline/OneMovieList2';
+import DropdownRelease from './twoline/DropdownRelease';
+import DropdownYear from './twoline/DropdownYear';
+import DropdownAlphabet from './twoline/DropdownAlphabet';
 import { faClapperboard, faFilm } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { getTenPagesData } from '../../../api';
 import { Link } from 'react-router-dom';
-import RatingSlide from './Client/RatingSlide';
+import RatingSlide from './twoline/RatingSlide';
 import { motion } from 'framer-motion';
 
 const TwoLine = () => {
@@ -162,25 +162,29 @@ const TwoLine = () => {
     return (
         <div className='w-full h-auto flex flex-col items-center mb-10'>
             <div className="flex justify-center my-4 md:my-8">
-                <div className="bg-zinc-800 p-1 rounded-full flex">
-                    <motion.button
-                        className={`px-3 py-1.5 md:px-6 md:py-2 rounded-full font-medium transition-colors duration-200 flex items-center space-x-1 md:space-x-2 text-xs md:text-base ${selectedType2 === "Movies" ? "bg-red-600 text-white" : "text-gray-400 hover:text-white"}`}
-                        onClick={() => handleTypeClick2("Movies")}
-                        whileHover={{ scale: 1.05 }}
-                        whileTap={{ scale: 0.95 }}
-                    >
-                        <FontAwesomeIcon icon={faClapperboard} />
-                        <span>Movies</span>
-                    </motion.button>
-                    <motion.button
-                        className={`px-3 py-1.5 md:px-6 md:py-2 rounded-full font-medium transition-colors duration-200 flex items-center space-x-1 md:space-x-2 text-xs md:text-base ${selectedType2 === "Series" ? "bg-red-600 text-white" : "text-gray-400 hover:text-white"}`}
-                        onClick={() => handleTypeClick2("Series")}
-                        whileHover={{ scale: 1.05 }}
-                        whileTap={{ scale: 0.95 }}
-                    >
-                        <FontAwesomeIcon icon={faFilm} />
-                        <span>Series</span>
-                    </motion.button>
+                <div className="inline-flex flex-wrap justify-center bg-black/40 backdrop-blur-sm rounded-full p-1 shadow-xl">
+                    <div className='px-0.5 sm:px-1'>
+                        <motion.button
+                            className={`px-3 py-1.5 md:px-6 md:py-2 rounded-full font-medium transition-colors duration-200 flex items-center space-x-1 md:space-x-2 text-xs md:text-base ${selectedType2 === "Movies" ? "bg-red-600 text-white" : "text-gray-400 hover:text-white"}`}
+                            onClick={() => handleTypeClick2("Movies")}
+                            whileHover={{ scale: 1.05 }}
+                            whileTap={{ scale: 0.95 }}
+                        >
+                            <FontAwesomeIcon icon={faClapperboard} />
+                            <span>Movies</span>
+                        </motion.button>
+                    </div>
+                    <div className='px-0.5 sm:px-1'>
+                        <motion.button
+                            className={`px-3 py-1.5 md:px-6 md:py-2 rounded-full font-medium transition-colors duration-200 flex items-center space-x-1 md:space-x-2 text-xs md:text-base ${selectedType2 === "Series" ? "bg-red-600 text-white" : "text-gray-400 hover:text-white"}`}
+                            onClick={() => handleTypeClick2("Series")}
+                            whileHover={{ scale: 1.05 }}
+                            whileTap={{ scale: 0.95 }}
+                        >
+                            <FontAwesomeIcon icon={faFilm} />
+                            <span>Series</span>
+                        </motion.button>
+                    </div>
                 </div>
             </div>
 

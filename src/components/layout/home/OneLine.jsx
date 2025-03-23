@@ -3,7 +3,7 @@ import '../../../App.css';
 import {
     getTenPagesData,
 } from '../../../api';
-import OneMovieList from './Client/OneMovieList';
+import OneMovieList from './oneline/OneMovieList';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faArrowTrendUp, faBolt, faCaretDown, faFireFlameCurved, faStar } from '@fortawesome/free-solid-svg-icons';
 
@@ -130,8 +130,8 @@ const OneLine = () => {
                                 onClick={() => handleTypeClick("Popular")}
                             >
                                 <FontAwesomeIcon icon={faFireFlameCurved} />
-                                <span className="hidden xs:inline">Popular</span>
-                                <span className="xs:hidden">Pop</span>
+                                <span className="hidden md:inline">Popular</span>
+                                <span className="md:hidden">Pop</span>
                             </button>
                         </li>
                         <li className="px-0.5 sm:px-1">
@@ -143,8 +143,8 @@ const OneLine = () => {
                                 onClick={() => handleTypeClick("Upcoming")}
                             >
                                 <FontAwesomeIcon icon={faBolt} />
-                                <span className="hidden xs:inline">Upcoming</span>
-                                <span className="xs:hidden">Up</span>
+                                <span className="hidden md:inline">Upcoming</span>
+                                <span className="md:hidden">Up</span>
                             </button>
                         </li>
                         <li className="px-0.5 sm:px-1">

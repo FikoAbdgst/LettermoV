@@ -1,5 +1,5 @@
 import React from 'react'
-import DetailCard from '../layout/Main/Client/DetailCard'
+import DetailCard from '../layout/detail/DetailCard'
 import Footer from '../layout/Footer'
 
 const Detail = () => {
