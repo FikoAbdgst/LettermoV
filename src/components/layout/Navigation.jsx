@@ -44,7 +44,7 @@ const Navigation = () => {
                             <div className='w-8 h-8 md:w-10 md:h-10 bg-red-600 rounded-full flex items-center justify-center'>
                                 <FontAwesomeIcon icon={faFilm} className='text-white text-sm md:text-base' />
                             </div>
-                            <h1 className='text-red-600 text-xl md:text-2xl font-bold tracking-wider'>VMovie</h1>
+                            <h1 className='text-red-600 text-xl md:text-2xl font-bold tracking-wider'>LettermoV</h1>
                         </Link>
                     </div>
 

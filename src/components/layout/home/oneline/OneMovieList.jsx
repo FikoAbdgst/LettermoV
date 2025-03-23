@@ -4,12 +4,13 @@ import "slick-carousel/slick/slick-theme.css";
 import { faEye, faHeart, faClock, faPlay, faPlus, faStar } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { Link } from 'react-router-dom';
+import MovieActionTooltip from '../MovieActionTooltip'; // Import komponen tooltip
 
 const OneMovieList = ({ movies, setCurrentSlideMovie, currentSlideMovie, moviesPerSlide }) => {
     const [slidesMovie, setSlidesMovie] = useState([]);
     const [gridCols, setGridCols] = useState("grid-cols-5");
 
-    // Limit the number of movies to 10
+    // Limit the number of movies to 15
     const limitedMovies = movies.slice(0, 15);
 
     // Split movies into slides
@@ -88,7 +89,7 @@ const OneMovieList = ({ movies, setCurrentSlideMovie, currentSlideMovie, moviesP
                                 </Link>
                             </div>
 
-                            <div className="flex items-center h-5 sm:h-6 md:h-8 font-bold text-xs sm:text-sm md:text-base text-gray-200 truncate">
+                            <div className="flex items-center h-5 sm:h-6 md:h-5 font-bold text-xs sm:text-sm md:text-base text-gray-200 truncate">
                                 {title}
                             </div>
                             <div className="flex justify-between items-center">
@@ -96,11 +97,10 @@ const OneMovieList = ({ movies, setCurrentSlideMovie, currentSlideMovie, moviesP
                                     {releaseDate}
                                 </div>
                                 <div className='flex justify-center items-center gap-1 sm:gap-2'>
-                                    <button className="hidden sm:block">
-                                        <FontAwesomeIcon icon={faPlus} className='text-xs sm:text-sm text-gray-700' />
-                                    </button>
-
-
+                                    {/* Tombol Plus diganti dengan komponen MovieActionTooltip */}
+                                    <div className="hidden sm:block">
+                                        <MovieActionTooltip />
+                                    </div>
 
                                     <div className="text-xs sm:text-sm text-yellow-500 font-bold ml-1">
                                         <FontAwesomeIcon icon={faStar} className="pr-0.5 sm:pr-1" />
