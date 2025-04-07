@@ -1,8 +1,9 @@
 import React, { useEffect, useRef, useState } from 'react';
 import axios from 'axios';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faClock, faEye, faHeart, faPlay, faStar, faChevronDown, faChevronUp, faTimes, faChevronRight } from '@fortawesome/free-solid-svg-icons';
+import { faClock, faEye, faHeart, faPlay, faStar, faChevronDown, faChevronUp, faTimes, faChevronRight, faChevronLeft } from '@fortawesome/free-solid-svg-icons';
 import { Link } from 'react-router-dom';
+import RecommendationSection from './RecommendationSection';
 
 const DetailCard = () => {
     const [dataMovie, setDataMovie] = useState(null);
@@ -236,8 +237,8 @@ const DetailCard = () => {
                         <h1 className='py-2 flex justify-between'><span className="font-medium">Language:</span> <span className='text-gray-400 text-right'>{dataMovie.spoken_languages ? dataMovie.spoken_languages.map(language => language.english_name).join(', ') : 'Language not available'}</span></h1>
                         <h1 className='py-2 flex justify-between'><span className="font-medium">Release Date:</span> <span className='text-gray-400'>{dataMovie.release_date || dataMovie.first_air_date}</span></h1>
                     </div>
-                    <div className='mt-6 mb-3'>
-                        <h1 className='text-lg font-medium mb-2'>StoryLine</h1>
+                    <div className='mt-6 mb-4 border-t py-2'>
+                        <h1 className='text-lg font-medium my-2'>StoryLine</h1>
                         <p className='text-sm leading-relaxed text-gray-300'>{dataMovie.overview}</p>
                     </div>
                 </div>
@@ -308,6 +309,9 @@ const DetailCard = () => {
 
     return (
         <div className="w-full h-auto relative">
+            <button className="absolute top-10 left-10 text-white" onClick={() => window.history.back()}>
+                <FontAwesomeIcon icon={faChevronLeft} className="text-2xl" />
+            </button>
             <div className="w-full h-1/2 absolute bottom-0 bg-gradient-to-t from-zinc-900"></div>
             <div className="w-full h-12 absolute -bottom-12 bg-gradient-to-b from-zinc-900"></div>
             {dataMovie ? (
@@ -350,21 +354,7 @@ const DetailCard = () => {
                                 </h1>
                             </div>
 
-                            {/* Movie stats for mobile - Redesigned */}
-                            <div className='w-full md:hidden px-3 mb-2'>
-                                <div className='flex flex-wrap justify-between items-center bg-zinc-800 bg-opacity-80 backdrop-blur-sm rounded-lg p-2'>
-                                    <div className='flex items-center gap-1 p-2'>
-                                        <FontAwesomeIcon icon={faStar} className="text-yellow-500" />
-                                        <span className="font-bold">{dataMovie.vote_average.toFixed(1)}</span>
-                                    </div>
-                                    <div className='p-2 border-l border-zinc-700'>
-                                        <span className="text-xs font-bold">{contentRating}</span>
-                                    </div>
-                                    <div className='p-2 border-l border-zinc-700'>
-                                        <span className="text-xs">{dataMovie.runtime ? formatRuntime(dataMovie.runtime) : `${getNumberOfSeasons(dataMovie)} Season`}</span>
-                                    </div>
-                                </div>
-                            </div>
+
 
                             <div className='w-full md:w-11/12 lg:w-3/4 border-y py-5 md:py-10 flex flex-col md:flex-row justify-start'>
                                 {/* Poster and action buttons - More centered and cleaner on mobile */}
@@ -405,6 +395,22 @@ const DetailCard = () => {
                                                     {genre.name}
                                                 </span>
                                             ))}
+                                        </div>
+                                    </div>
+                                    {/* Movie stats for mobile - Redesigned */}
+                                    <div className='w-4/5 md:hidden mt-2 mb-3'>
+                                        <div className='flex justify-between items-center bg-zinc-800/70 rounded-lg py-2 px-3'>
+                                            <div className='flex items-center'>
+                                                <FontAwesomeIcon icon={faStar} className="text-yellow-500 mr-1" />
+                                                <span className="font-bold">{dataMovie.vote_average.toFixed(1)}</span>
+                                            </div>
+                                            <div className='flex items-center'>
+                                                <FontAwesomeIcon icon={faClock} className="text-gray-400 mr-1" />
+                                                <span className="text-xs">{dataMovie.runtime ? formatRuntime(dataMovie.runtime) : `${getNumberOfSeasons(dataMovie)} Season`}</span>
+                                            </div>
+                                            <div className='flex items-center mx-2'>
+                                                <span className="text-xs font-medium px-2 py-1 bg-zinc-700 rounded">{contentRating}</span>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
@@ -522,6 +528,9 @@ const DetailCard = () => {
                                         <p className='text-sm leading-relaxed'>{dataMovie.overview}</p>
                                     </div>
                                 </div>
+                            </div>
+                            <div className='w-4/5'>
+                                <RecommendationSection />
                             </div>
                         </div>
                     </div>
