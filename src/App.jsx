@@ -15,7 +15,7 @@ function App() {
         <Route path="/movie" element={<Movie />} />
         <Route path="/series" element={<Series />} />
         <Route path="/detail" element={<Detail />} />
-        <Route path="/detail/:id" element={<Detail />} /> {/* Add this line */}
+        <Route path="/detail/:id" element={<Detail />} />
         <Route path="/search" element={<SearchResults />} />
         <Route path="*" element={<Navigate to="/" />} /> {/* Add this catch-all route */}
       </Routes>
