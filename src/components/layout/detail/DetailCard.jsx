@@ -4,6 +4,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faClock, faEye, faHeart, faPlay, faStar, faChevronDown, faChevronUp, faTimes, faChevronRight, faChevronLeft } from '@fortawesome/free-solid-svg-icons';
 import { Link } from 'react-router-dom';
 import RecommendationSection from './RecommendationSection';
+import '../../../App.css';
 
 const DetailCard = () => {
     const [dataMovie, setDataMovie] = useState(null);
@@ -23,6 +24,7 @@ const DetailCard = () => {
     const [isLoading, setIsLoading] = useState(true);
     const [hasError, setHasError] = useState(false);
     const [errorMessage, setErrorMessage] = useState('');
+    const [activeSection, setActiveSection] = useState('cast'); // Options: 'cast' or 'crew'
 
     const fetchData = async () => {
         const movieId = localStorage.getItem('selectedMovieId');
@@ -89,26 +91,42 @@ const DetailCard = () => {
                 const creditsResponse = await axios.get(
                     `https://api.themoviedb.org/3/${mediaType}/${movieId}/credits?api_key=${import.meta.env.VITE_APIKEY}`
                 );
-                const crew = creditsResponse.data.crew;
-                const castData = creditsResponse.data.cast;
 
-                const director = crew.find(member => member.job === 'Director') ||
-                    (detailsResponse.data.created_by && detailsResponse.data.created_by[0]);
-                const writers = crew.filter(member =>
-                    member.job === 'Writer' ||
-                    member.job === 'Screenplay' ||
-                    member.job === 'Story' ||
-                    member.known_for_department === "Writing"
-                );
+                if (creditsResponse.data) {
+                    const crew = creditsResponse.data.crew || [];
+                    const castData = creditsResponse.data.cast || [];
 
-                setDirector(director ? director.name : 'Directors not available');
-                setWriters(writers.length > 0 ? writers.map(writer => writer.name) : ['Writers not available']);
-                setCast(castData.length > 0 ? castData.slice(0, 5) : []);
+                    // Find director - for TV shows, look for created_by if director isn't found
+                    const director = crew.find(member => member.job === 'Director');
+                    const createdBy = detailsResponse.data.created_by && detailsResponse.data.created_by.length > 0
+                        ? detailsResponse.data.created_by[0]
+                        : null;
+
+                    // Writers - look for specific writing roles
+                    const writers = crew.filter(member =>
+                        member.job === 'Writer' ||
+                        member.job === 'Screenplay' ||
+                        member.job === 'Story' ||
+                        member.known_for_department === "Writing"
+                    );
+
+                    setDirector(director ? director.name : (createdBy ? createdBy.name : 'Director not available'));
+                    setWriters(writers.length > 0 ? writers.map(writer => writer.name) : ['Writers not available']);
+
+                    // Make sure we get cast data and limit to top 10
+                    if (castData && castData.length > 0) {
+                        setCast(castData.slice(0, 10));
+                    } else {
+                        setCast([]);
+                        console.log('No cast data available');
+                    }
+                }
             } catch (error) {
                 console.error('Error fetching credits:', error);
-                // Continue despite this error
+                setDirector('Director not available');
+                setWriters(['Writers not available']);
+                setCast([]);
             }
-
             // Fetch gallery images
             try {
                 const galleryResponse = await axios.get(
@@ -142,6 +160,7 @@ const DetailCard = () => {
     };
 
     // Add useEffect to extract ID from URL on component mount
+    // Update the useEffect (around line 204)
     useEffect(() => {
         // Get ID from URL if present
         const pathSegments = window.location.pathname.split('/');
@@ -151,9 +170,20 @@ const DetailCard = () => {
             localStorage.setItem('selectedMovieId', potentialId);
         }
 
-        fetchData();
+        // Make sure we always have a movieId before fetching
+        const movieId = localStorage.getItem('selectedMovieId');
+        if (movieId) {
+            fetchData();
+        } else {
+            setHasError(true);
+            setErrorMessage('No movie ID found. Please select a movie first.');
+            setIsLoading(false);
+        }
     }, []);
 
+    const toggleCastCrewSection = (section) => {
+        setActiveSection(section);
+    };
     const formatRuntime = (runtime) => {
         const hours = Math.floor(runtime / 60);
         const minutes = runtime % 60;
@@ -195,37 +225,7 @@ const DetailCard = () => {
         setWatched(!watched);
     };
 
-    const displayWriters = () => {
-        if (writers.length <= 2) {
-            return <span className='text-gray-500'>{writers.join(', ')}</span>;
-        }
 
-        return (
-            <div className="relative inline-block">
-                <span className='text-gray-500'>{writers.slice(0, 2).join(', ')}, ... </span>
-                <button
-                    onClick={toggleWriters}
-                    className="ml-2 px-1 py-0.5 bg-zinc-800 rounded-full inline-flex items-center justify-center"
-                    aria-label="Toggle writers"
-                >
-                    <FontAwesomeIcon icon={showWriters ? faChevronUp : faChevronDown} className="text-xs" />
-                </button>
-
-                {showWriters && (
-                    <div ref={tooltipRef} className="absolute z-10 mt-1 -left-2 w-60 p-2 bg-zinc-800 text-white rounded shadow-lg">
-                        <p className="text-sm font-medium mb-1">More Writers</p>
-                        <div className="max-h-32 overflow-y-auto">
-                            <ul className="grid grid-cols-2 gap-x-2 gap-y-1">
-                                {writers.slice(2).map((writer, index) => (
-                                    <li key={index} className="text-xs text-gray-300">{writer}</li>
-                                ))}
-                            </ul>
-                        </div>
-                    </div>
-                )}
-            </div>
-        );
-    };
 
     // Render tabs for mobile view
     const renderMobileTabs = () => {
@@ -238,10 +238,10 @@ const DetailCard = () => {
                     Details
                 </button>
                 <button
-                    className={`flex-1 py-3 text-center text-sm font-medium ${activeTab === 'cast' ? 'text-white border-b-2 border-red-500' : 'text-gray-400'}`}
-                    onClick={() => setActiveTab('cast')}
+                    className={`flex-1 py-3 text-center text-sm font-medium ${activeTab === 'cast_crew' ? 'text-white border-b-2 border-red-500' : 'text-gray-400'}`}
+                    onClick={() => setActiveTab('cast_crew')}
                 >
-                    Cast
+                    Cast & Crew
                 </button>
                 <button
                     className={`flex-1 py-3 text-center text-sm font-medium ${activeTab === 'gallery' ? 'text-white border-b-2 border-red-500' : 'text-gray-400'}`}
@@ -262,8 +262,7 @@ const DetailCard = () => {
                 <div className='w-full px-4 md:hidden'>
                     <h1 className='pb-3 text-lg font-medium'>Movie Details</h1>
                     <div className='text-sm'>
-                        <h1 className='py-2 flex justify-between'><span className="font-medium">Director:</span> <span className='text-gray-400'>{director || 'N/A'}</span></h1>
-                        <h1 className='py-2 flex justify-between items-start'><span className="font-medium">Writers:</span> <span className='text-gray-400 text-right'>{writers.length > 0 ? displayWriters() : 'N/A'}</span></h1>
+                        <h1 className='py-2 flex justify-between'><span className="font-medium">Studios:</span> <span className='text-gray-400'>{dataMovie.production_companies && dataMovie.production_companies.length > 0 ? dataMovie.production_companies.map(company => company.name).join(', ') : 'N/A'}</span></h1>
                         <h1 className='py-2 flex justify-between'><span className="font-medium">Country:</span> <span className='text-gray-400 text-right'>{dataMovie.production_countries && dataMovie.production_countries.length > 0 ? dataMovie.production_countries.map(country => country.name).join(', ') : 'N/A'}</span></h1>
                         <h1 className='py-2 flex justify-between'><span className="font-medium">Language:</span> <span className='text-gray-400 text-right'>{dataMovie.spoken_languages && dataMovie.spoken_languages.length > 0 ? dataMovie.spoken_languages.map(language => language.english_name).join(', ') : 'N/A'}</span></h1>
                         <h1 className='py-2 flex justify-between'><span className="font-medium">Release Date:</span> <span className='text-gray-400'>{dataMovie.release_date || dataMovie.first_air_date || 'N/A'}</span></h1>
@@ -274,33 +273,110 @@ const DetailCard = () => {
                     </div>
                 </div>
             );
-        } else if (activeTab === 'cast') {
+        } else if (activeTab === 'cast_crew') {
             return (
                 <div className='w-full px-4 md:hidden'>
-                    <h1 className='pb-3 text-lg font-medium'>Top Cast</h1>
-                    <div className='grid grid-cols-1 gap-4'>
-                        {cast.map(actor => (
-                            <div key={actor.id} className='flex items-center bg-zinc-800 p-3 rounded-lg'>
-                                <div className="w-12 h-12 rounded-full overflow-hidden mr-3 flex-shrink-0">
-                                    {actor.profile_path ? (
-                                        <img
-                                            src={`https://image.tmdb.org/t/p/w200/${actor.profile_path}`}
-                                            alt={actor.name}
-                                            className="w-full h-full object-cover"
-                                        />
-                                    ) : (
-                                        <div className="w-full h-full bg-gray-700 flex items-center justify-center text-sm">
-                                            {actor.name.charAt(0)}
-                                        </div>
-                                    )}
-                                </div>
-                                <div>
-                                    <h1 className="font-medium text-sm">{actor.name}</h1>
-                                    <p className="text-gray-400 text-xs">{actor.character}</p>
-                                </div>
+                    <h1 className='pb-3 text-lg font-medium'>Cast & Crew</h1>
+
+                    {/* Director section */}
+                    <div className="mb-4">
+                        <h2 className="text-gray-400 text-sm mb-2">Director</h2>
+                        <div className='flex items-center bg-zinc-800 p-3 rounded-lg'>
+                            <div className="w-12 h-12 rounded-full bg-zinc-700 flex items-center justify-center text-sm mr-3 flex-shrink-0">
+                                D
                             </div>
-                        ))}
+                            <div>
+                                <h1 className="font-medium text-sm">{director || 'N/A'}</h1>
+                            </div>
+                        </div>
                     </div>
+
+                    {/* Writers section */}
+                    {writers.length > 0 && (
+                        <div className="mb-4">
+                            <h2 className="text-gray-400 text-sm mb-2">Writers</h2>
+                            <div className='flex flex-col gap-2'>
+                                {writers.slice(0, 3).map((writer, index) => (
+                                    <div key={index} className='flex items-center bg-zinc-800 p-3 rounded-lg'>
+                                        <div className="w-12 h-12 rounded-full bg-zinc-700 flex items-center justify-center text-sm mr-3 flex-shrink-0">
+                                            W
+                                        </div>
+                                        <div>
+                                            <h1 className="font-medium text-sm">{writer}</h1>
+                                        </div>
+                                    </div>
+                                ))}
+
+                                {writers.length > 3 && (
+                                    <button
+                                        className="text-center text-sm text-blue-400 bg-zinc-800 p-3 rounded-lg"
+                                        onClick={toggleWriters}
+                                    >
+                                        Show all {writers.length} writers
+                                    </button>
+                                )}
+
+                                {showWriters && (
+                                    <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50" onClick={toggleWriters}>
+                                        <div className="bg-zinc-800 p-4 rounded-lg w-4/5 max-h-3/4 overflow-y-auto" onClick={e => e.stopPropagation()}>
+                                            <div className="flex justify-between items-center mb-4">
+                                                <h2 className="text-lg font-medium">All Writers</h2>
+                                                <button onClick={toggleWriters}>
+                                                    <FontAwesomeIcon icon={faTimes} />
+                                                </button>
+                                            </div>
+                                            <div className="grid grid-cols-1 gap-2">
+                                                {writers.map((writer, index) => (
+                                                    <div key={index} className="p-2 border-b border-zinc-700">
+                                                        {writer}
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Cast section */}
+                    <h2 className="text-gray-400 text-sm mb-2">Cast</h2>
+                    <div className='grid grid-cols-1 gap-4 pb-6'>
+                        {cast && cast.length > 0 ? (
+                            cast.map(actor => (
+                                <div key={actor.id || `cast-${Math.random()}`} className='flex items-center bg-zinc-800 p-3 rounded-lg'>
+                                    <div className="w-12 h-12 rounded-full overflow-hidden mr-3 flex-shrink-0">
+                                        {actor.profile_path ? (
+                                            <img
+                                                src={`https://image.tmdb.org/t/p/w200/${actor.profile_path}`}
+                                                alt={actor.name}
+                                                className="w-full h-full object-cover"
+                                                onError={(e) => {
+                                                    e.target.onerror = null;
+                                                    e.target.src = ""; // Empty src when image fails
+                                                    e.target.parentNode.classList.add("bg-gray-700");
+                                                    e.target.parentNode.innerHTML = `<div class="w-full h-full flex items-center justify-center text-sm">${actor.name?.charAt(0) || "?"}</div>`;
+                                                }}
+                                            />
+                                        ) : (
+                                            <div className="w-full h-full bg-gray-700 flex items-center justify-center text-sm">
+                                                {actor.name?.charAt(0) || "?"}
+                                            </div>
+                                        )}
+                                    </div>
+                                    <div>
+                                        <h1 className="font-medium text-sm">{actor.name || "Unknown"}</h1>
+                                        <p className="text-gray-400 text-xs">{actor.character || "Unknown character"}</p>
+                                    </div>
+                                </div>
+                            ))
+                        ) : (
+                            <div className="bg-zinc-800 p-4 rounded-lg text-center">
+                                <p className="text-gray-400">No cast information available</p>
+                            </div>
+                        )}
+                    </div>
+
                 </div>
             );
         } else if (activeTab === 'gallery') {
@@ -371,7 +447,7 @@ const DetailCard = () => {
                     <div className='w-full h-full'>
                         {dataMovie.backdrop_path ? (
                             <img
-                                className="object-cover w-full h-full min-h-[50vh] md:min-h-[80vh]"
+                                className="object-cover object-center w-full h-full min-h-[50vh] md:min-h-[80vh]"
                                 src={`https://image.tmdb.org/t/p/original/${dataMovie.backdrop_path}`}
                                 alt={dataMovie.title || dataMovie.name}
                             />
@@ -467,10 +543,10 @@ const DetailCard = () => {
                                     </div>
                                 </div>
 
-                                <div className='w-full mt-2 md:mt-0'>
+                                <div className='w-3/4 mt-2 md:mt-0'>
                                     {/* Desktop layout remains similar but cleaner */}
-                                    <div className="hidden md:flex md:flex-row">
-                                        <div className="w-full px-4 md:px-0 md:w-3/4">
+                                    <div className="w-full hidden md:flex md:flex-row">
+                                        <div className="w-full px-4 md:px-0 md:w-[70]">
                                             <h1 className='text-2xl md:text-3xl md:ml-10 font-bold'>
                                                 {dataMovie.title || dataMovie.name}
                                             </h1>
@@ -479,10 +555,6 @@ const DetailCard = () => {
                                             </h1>
 
                                             <div className='my-5 py-1 flex flex-wrap border-y text-xs md:mx-10'>
-                                                <div className='m-2 flex justify-center items-center gap-1'>
-                                                    <FontAwesomeIcon icon={faEye} />
-                                                    {dataMovie.popularity}
-                                                </div>
                                                 <div className='m-2 text-yellow-500 flex justify-center items-center gap-1'>
                                                     <FontAwesomeIcon icon={faStar} />
                                                     {dataMovie.vote_average.toFixed(1)}
@@ -498,46 +570,21 @@ const DetailCard = () => {
                                                 </div>
                                             </div>
 
-                                            <div className='md:ml-10 flex flex-col md:flex-row'>
+                                            {/* Details section */}
+                                            <div className='md:ml-10'>
                                                 <div className='w-full px-4 md:px-0 md:w-1/2'>
                                                     <h1 className='pb-3 md:pb-5 text-xl font-medium'>Details</h1>
                                                     <div className='text-xs'>
-                                                        <h1 className='py-1'>Director: <span className='text-gray-500'>{director}</span></h1>
-                                                        <h1 className='py-1'>Writers: {displayWriters()}</h1>
+                                                        <h1 className='py-1'>Studios: <span className='text-gray-500'>{dataMovie.production_companies ? dataMovie.production_companies.map(company => company.name).join(', ') : 'Studios not available'}</span></h1>
                                                         <h1 className='py-1'>Country: <span className='text-gray-500'>{dataMovie.production_countries ? dataMovie.production_countries.map(country => country.name).join(', ') : 'Country not available'}</span></h1>
                                                         <h1 className='py-1'>Language: <span className='text-gray-500'>{dataMovie.spoken_languages ? dataMovie.spoken_languages.map(language => language.english_name).join(', ') : 'Language not available'}</span></h1>
                                                         <h1 className='py-1'>Release Date: <span className='text-gray-500'>{dataMovie.release_date || dataMovie.first_air_date}</span></h1>
                                                     </div>
                                                 </div>
-
-                                                <div className='w-full px-4 md:px-0 md:w-1/2 md:ml-2 mt-4 md:mt-0'>
-                                                    <h1 className='pb-3 md:pb-5 text-xl font-medium'>Top Cast</h1>
-                                                    <div className='grid grid-cols-1 gap-2'>
-                                                        {cast.map(actor => (
-                                                            <div key={actor.id} className='flex items-center'>
-                                                                <div className="w-8 h-8 md:w-10 md:h-10 rounded-full overflow-hidden mr-2 flex-shrink-0">
-                                                                    {actor.profile_path ? (
-                                                                        <img
-                                                                            src={`https://image.tmdb.org/t/p/w200/${actor.profile_path}`}
-                                                                            alt={actor.name}
-                                                                            className="w-full h-full object-cover"
-                                                                        />
-                                                                    ) : (
-                                                                        <div className="w-full h-full bg-gray-700 flex items-center justify-center text-xs">
-                                                                            {actor.name.charAt(0)}
-                                                                        </div>
-                                                                    )}
-                                                                </div>
-                                                                <div className="text-xs">
-                                                                    <h1 className="font-medium">{actor.name}</h1>
-                                                                    <p className="text-gray-500 text-xs">{actor.character}</p>
-                                                                </div>
-                                                            </div>
-                                                        ))}
-                                                    </div>
-                                                </div>
                                             </div>
+
                                         </div>
+
 
                                         <div className='w-full px-4 md:px-0 md:w-1/4 mt-4 md:mt-0'>
                                             <p className='my-2 text-lg font-medium'>Gallery</p>
@@ -568,11 +615,120 @@ const DetailCard = () => {
                                                 </div>
                                             )}
                                         </div>
-                                    </div>
 
+                                    </div>
+                                    {/* Cast & Crew Toggle Buttons */}
+                                    <div className='md:ml-10 mt-5 pt-4'>
+                                        <div className="flex border-b border-zinc-700 mb-4">
+                                            <button
+                                                onClick={() => toggleCastCrewSection('cast')}
+                                                className={`px-4 py-2 text-sm font-medium ${activeSection === 'cast' ? 'text-white border-b-2 border-red-500' : 'text-gray-400'}`}
+                                            >
+                                                Cast
+                                            </button>
+                                            <button
+                                                onClick={() => toggleCastCrewSection('crew')}
+                                                className={`px-4 py-2 text-sm font-medium ${activeSection === 'crew' ? 'text-white border-b-2 border-red-500' : 'text-gray-400'}`}
+                                            >
+                                                Crew
+                                            </button>
+                                        </div>
+
+                                        {/* Cast & Crew Horizontal Scrollable Content */}
+                                        {activeSection === 'cast' && (
+                                            <div className='overflow-x-auto scrollbar-cast pb-4'>
+                                                <div className="flex space-x-3 pb-2">
+                                                    {cast && cast.length > 0 ? (
+                                                        cast.map(actor => (
+                                                            <div key={actor.id || `cast-${Math.random()}`} className='px-3 py-3 rounded-lg bg-zinc-800 flex items-center flex-shrink-0 min-w-48'>
+                                                                <div className="w-12 h-12 rounded-full overflow-hidden mr-3 flex-shrink-0">
+                                                                    {actor.profile_path ? (
+                                                                        <img
+                                                                            src={`https://image.tmdb.org/t/p/w200/${actor.profile_path}`}
+                                                                            alt={actor.name}
+                                                                            className="w-full h-full object-cover"
+                                                                            onError={(e) => {
+                                                                                e.target.onerror = null;
+                                                                                e.target.src = "";
+                                                                                e.target.parentNode.classList.add("bg-gray-700");
+                                                                                e.target.parentNode.innerHTML = `<div class="w-full h-full flex items-center justify-center text-sm">${actor.name?.charAt(0) || "?"}</div>`;
+                                                                            }}
+                                                                        />
+                                                                    ) : (
+                                                                        <div className="w-full h-full bg-gray-700 flex items-center justify-center text-sm">
+                                                                            {actor.name?.charAt(0) || "?"}
+                                                                        </div>
+                                                                    )}
+                                                                </div>
+                                                                <div>
+                                                                    <h1 className="font-medium text-sm whitespace-nowrap">{actor.name || "Unknown"}</h1>
+                                                                    <p className="text-gray-400 text-xs whitespace-nowrap">{actor.character || "Unknown character"}</p>
+                                                                </div>
+                                                            </div>
+                                                        ))
+                                                    ) : (
+                                                        <div className="text-gray-400 text-sm p-4 bg-zinc-800 rounded-lg">No cast information available</div>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {/* Crew Section */}
+                                        {activeSection === 'crew' && (
+                                            <div className='pb-4'>
+                                                {/* Director Section */}
+                                                {director && (
+                                                    <div className='mb-3'>
+                                                        <p className="text-xs text-gray-400 mb-2">Director</p>
+                                                        <div className='overflow-x-auto'>
+                                                            <div className='flex space-x-3 pb-2'>
+                                                                <div className='px-3 py-3 rounded-lg bg-zinc-800 flex items-center flex-shrink-0'>
+                                                                    <div className="w-12 h-12 rounded-full overflow-hidden mr-3 flex-shrink-0">
+                                                                        <div className="w-full h-full bg-zinc-700 flex items-center justify-center text-sm">
+                                                                            {director.charAt(0)}
+                                                                        </div>
+                                                                    </div>
+                                                                    <div>
+                                                                        <h1 className="font-medium text-sm whitespace-nowrap">{director}</h1>
+                                                                        <p className="text-gray-400 text-xs">Director</p>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                )}
+
+                                                {/* Writers Section */}
+                                                {writers.length > 0 && (
+                                                    <div className='mb-3'>
+                                                        <p className="text-xs text-gray-400 mb-2">Writers</p>
+                                                        <div className='overflow-x-auto'>
+                                                            <div className='flex space-x-3 pb-2'>
+                                                                {writers.map((writer, index) => (
+                                                                    <div key={index} className='px-3 py-3 rounded-lg bg-zinc-800 flex items-center flex-shrink-0'>
+                                                                        <div className="w-12 h-12 rounded-full overflow-hidden mr-3 flex-shrink-0">
+                                                                            <div className="w-full h-full bg-zinc-700 flex items-center justify-center text-sm">
+                                                                                {writer.charAt(0)}
+                                                                            </div>
+                                                                        </div>
+                                                                        <div>
+                                                                            <h1 className="font-medium text-sm whitespace-nowrap">{writer}</h1>
+                                                                            <p className="text-gray-400 text-xs">Writer</p>
+                                                                        </div>
+                                                                    </div>
+                                                                ))}
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        )}
+                                    </div>
                                     {/* Mobile tab system - New implementation */}
-                                    {renderMobileTabs()}
-                                    {renderActiveTabContent()}
+                                    <div className="md:hidden mb-20"> {/* Add this container with mb-20 for extra space at bottom */}
+                                        {renderMobileTabs()}
+                                        {renderActiveTabContent()}
+                                    </div>
 
                                     {/* Desktop storyline */}
                                     <div className='hidden md:block px-4 md:px-0 md:ml-10 mt-5 py-5 border-t'>

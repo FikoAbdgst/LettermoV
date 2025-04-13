@@ -128,3 +128,42 @@
 .animate-pulse {
     animation: pulse 1.5s infinite;
 }
+
+/* Tambahkan di file CSS global */
+.scrollbar-hide {
+    -ms-overflow-style: none;
+    /* IE and Edge */
+    scrollbar-width: none;
+    /* Firefox */
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+    display: none;
+    /* Chrome, Safari and Opera */
+}
+
+/* Custom scrollbar for cast section */
+.scrollbar-cast::-webkit-scrollbar {
+    width: 6px;
+    background: transparent;
+}
+
+.scrollbar-cast::-webkit-scrollbar-thumb {
+    background-color: rgba(255, 255, 255, 0.2);
+    border-radius: 10px;
+}
+
+.scrollbar-cast::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+/* Hide scrollbar arrows/buttons */
+.scrollbar-cast ::-webkit-scrollbar-button {
+    display: none;
+}
+
+/* For Firefox */
+.scrollbar-cast {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
+}

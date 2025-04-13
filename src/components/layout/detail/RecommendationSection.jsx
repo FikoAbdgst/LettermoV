@@ -1,15 +1,33 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faStar, faPlay } from '@fortawesome/free-solid-svg-icons';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import MovieActionTooltip from '../home/MovieActionTooltip';
 
 const RecommendationSection = () => {
     const [recommendations, setRecommendations] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
-    const navigate = useNavigate(); // Add React Router's navigate hook
+    const navigate = useNavigate();
+
+    // Refs dan state untuk scroll
+    const scrollContainerRef = useRef(null);
+    const [showLeftFade, setShowLeftFade] = useState(false);
+    const [showRightFade, setShowRightFade] = useState(true);
+
+    // Fungsi untuk mengecek posisi scroll
+    const checkScrollPosition = () => {
+        const container = scrollContainerRef.current;
+        if (!container) return;
+
+        // Cek apakah sudah ada scroll di sisi kiri
+        setShowLeftFade(container.scrollLeft > 0);
+
+        // Cek apakah masih bisa scroll ke kanan
+        const maxScrollLeft = container.scrollWidth - container.clientWidth;
+        setShowRightFade(container.scrollLeft < maxScrollLeft - 5); // Toleransi 5px
+    };
 
     useEffect(() => {
         const movieId = localStorage.getItem('selectedMovieId');
@@ -115,6 +133,12 @@ const RecommendationSection = () => {
                 }
 
                 setLoading(false);
+
+                // Setelah data diload, cek scroll di next render cycle
+                setTimeout(() => {
+                    checkScrollPosition();
+                }, 0);
+
             } catch (err) {
                 console.error('Error fetching recommendations:', err);
                 setError('Failed to load recommendations');
@@ -123,7 +147,32 @@ const RecommendationSection = () => {
         };
 
         fetchRecommendations();
+
+        // Set up scroll event listener
+        const currentScrollContainer = scrollContainerRef.current;
+        if (currentScrollContainer) {
+            currentScrollContainer.addEventListener('scroll', checkScrollPosition);
+        }
+
+        // Clean up
+        return () => {
+            if (currentScrollContainer) {
+                currentScrollContainer.removeEventListener('scroll', checkScrollPosition);
+            }
+        };
     }, []);
+
+    // Effect untuk mengatur scroll di awal dan saat window resize
+    useEffect(() => {
+        checkScrollPosition();
+
+        // Tambahkan event listener untuk resize window
+        window.addEventListener('resize', checkScrollPosition);
+
+        return () => {
+            window.removeEventListener('resize', checkScrollPosition);
+        };
+    }, [recommendations]);
 
     // Updated function to handle movie selection and navigation
     const handleSelectMovie = (movie) => {
@@ -143,8 +192,8 @@ const RecommendationSection = () => {
                 <div className="overflow-x-auto pb-4">
                     <div className="flex space-x-4 min-w-max">
                         {[...Array(10)].map((_, index) => (
-                            <div key={index} className="flex-shrink-0 w-32 md:w-40 animate-pulse">
-                                <div className="bg-zinc-700 h-48 md:h-60 rounded-lg mb-2 aspect-[2/3]"></div>
+                            <div key={index} className="flex-shrink-0 w-28 md:w-40 animate-pulse">
+                                <div className="bg-zinc-700 h-40 md:h-60 rounded-lg mb-2 aspect-[2/3]"></div>
                                 <div className="bg-zinc-700 h-4 rounded w-3/4 mb-1"></div>
                                 <div className="bg-zinc-700 h-3 rounded w-1/2"></div>
                             </div>
@@ -179,62 +228,77 @@ const RecommendationSection = () => {
     }
 
     return (
-        <div className="w-full py-6 px-4 md:px-10">
+        <div className="w-full py-6 md:px-10">
             <h2 className="text-xl font-medium mb-4">Similar Genre Recommendations</h2>
 
-            <div className="overflow-x-auto pb-4">
-                <div className="flex space-x-4 min-w-max">
-                    {recommendations.map((movie, index) => {
-                        const title = (movie.title || movie.name || "").length >= 15
-                            ? (movie.title || movie.name).substring(0, 15) + "..."
-                            : (movie.title || movie.name);
-                        const releaseDate = movie.release_date?.substring(0, 4) ||
-                            movie.first_air_date?.substring(0, 4) || "N/A";
+            <div className="relative">
+                {/* Left fade effect - conditional */}
+                {showLeftFade && (
+                    <div className="absolute -left-1 -top-1 bottom-0 w-20 bg-gradient-to-r from-zinc-900 to-transparent z-10"></div>
+                )}
 
-                        return (
-                            <div className="flex-shrink-0 w-32 md:w-40" key={index}>
-                                <div className="relative group overflow-hidden rounded-lg">
-                                    {movie.poster_path ? (
-                                        <img
-                                            src={`https://image.tmdb.org/t/p/w300${movie.poster_path}`}
-                                            alt={movie.title || movie.name}
-                                            className="w-full h-48 md:h-60 object-cover rounded-lg transition-transform duration-300 ease-in-out transform group-hover:scale-110 group-hover:blur-sm group-hover:opacity-50"
-                                        />
-                                    ) : (
-                                        <div className="w-full h-48 md:h-60 bg-zinc-800 flex items-center justify-center rounded-lg text-gray-400">
-                                            No image
-                                        </div>
-                                    )}
-                                    {/* Replace Link with direct button */}
-                                    <button
-                                        className="w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 absolute inset-0 m-auto opacity-0 bg-transparent group-hover:opacity-100 rounded-full border-2 sm:border-4 flex items-center justify-center"
-                                        onClick={() => handleSelectMovie(movie)}
-                                        title={movie.title || movie.name}
-                                    >
-                                        <FontAwesomeIcon icon={faPlay} className='text-base sm:text-xl md:text-2xl' />
-                                    </button>
-                                </div>
-                                <h3 className="mt-2 text-sm font-medium truncate">
-                                    {title}
-                                </h3>
-                                <div className="flex justify-between items-center">
-                                    <div className="font-mono text-xs sm:text-sm text-gray-500">
-                                        {releaseDate}
+                <div
+                    ref={scrollContainerRef}
+                    className="overflow-x-auto pb-4 scrollbar-hide"
+                    onScroll={checkScrollPosition}
+                >
+                    <div className="flex space-x-3 md:space-x-4 px-2">
+                        {recommendations.map((movie, index) => {
+                            const title = (movie.title || movie.name || "").length >= 15
+                                ? (movie.title || movie.name).substring(0, 15) + "..."
+                                : (movie.title || movie.name);
+                            const releaseDate = movie.release_date?.substring(0, 4) ||
+                                movie.first_air_date?.substring(0, 4) || "N/A";
+
+                            return (
+                                <div className="flex-shrink-0 w-28 md:w-40" key={index}>
+                                    <div className="relative group overflow-hidden rounded-lg">
+                                        {movie.poster_path ? (
+                                            <img
+                                                src={`https://image.tmdb.org/t/p/w300${movie.poster_path}`}
+                                                alt={movie.title || movie.name}
+                                                className="w-full h-40 md:h-60 object-cover rounded-lg transition-transform duration-300 ease-in-out transform group-hover:scale-110 group-hover:blur-sm group-hover:opacity-50"
+                                            />
+                                        ) : (
+                                            <div className="w-full h-40 md:h-60 bg-zinc-800 flex items-center justify-center rounded-lg text-gray-400">
+                                                No image
+                                            </div>
+                                        )}
+                                        <button
+                                            className="w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 absolute inset-0 m-auto opacity-0 bg-transparent group-hover:opacity-100 rounded-full border-2 sm:border-4 flex items-center justify-center"
+                                            onClick={() => handleSelectMovie(movie)}
+                                            title={movie.title || movie.name}
+                                        >
+                                            <FontAwesomeIcon icon={faPlay} className='text-base sm:text-xl md:text-2xl' />
+                                        </button>
                                     </div>
-                                    <div className="flex items-center gap-1 sm:gap-2">
-                                        <div className="hidden sm:block">
-                                            <MovieActionTooltip />
+                                    <h3 className="mt-2 text-xs md:text-sm font-medium truncate">
+                                        {title}
+                                    </h3>
+                                    <div className="flex justify-between items-center text-xs">
+                                        <div className="font-mono text-gray-500">
+                                            {releaseDate}
                                         </div>
-                                        <div className="text-xs sm:text-sm text-yellow-500 font-bold">
-                                            <FontAwesomeIcon icon={faStar} className="pr-0.5 sm:pr-1" />
-                                            {movie.vote_average ? movie.vote_average.toFixed(1) : "N/A"}
+                                        <div className="flex items-center">
+                                            <div className="hidden sm:block">
+                                                <MovieActionTooltip />
+                                            </div>
+                                            <div className="text-yellow-500 font-bold">
+                                                <FontAwesomeIcon icon={faStar} className="pr-0.5" />
+                                                {movie.vote_average ? movie.vote_average.toFixed(1) : "N/A"}
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
-                            </div>
-                        );
-                    })}
+                            );
+                        })}
+                    </div>
                 </div>
+
+                {/* Right fade effect - conditional */}
+                {showRightFade && (
+                    <div className="absolute -right-1 -top-1 bottom-0 w-20 bg-gradient-to-l from-zinc-900 to-transparent z-10"></div>
+                )}
             </div>
         </div>
     );
