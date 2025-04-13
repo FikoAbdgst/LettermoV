@@ -7,14 +7,38 @@ import "slick-carousel/slick/slick-theme.css";
 import "../../../App.css";
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faPlay, faInfoCircle, faStar } from '@fortawesome/free-solid-svg-icons';
+import { Link } from 'react-router-dom';
 
 const Carousel = () => {
     const [trendingAllList, setTrendingAllList] = useState([]);
     const [genres, setGenres] = useState({});
+    const [trailers, setTrailers] = useState({});
+
 
     useEffect(() => {
-        getTrendingAllList().then((result) => {
+        getTrendingAllList().then(async (result) => {
             setTrendingAllList(result);
+
+            const trailerData = {};
+
+            for (const item of result.slice(0, 3)) {
+                try {
+                    const videoRes = await axios.get(`https://api.themoviedb.org/3/${item.media_type}/${item.id}/videos?api_key=${import.meta.env.VITE_APIKEY}`);
+                    const trailersList = videoRes.data.results;
+                    const youtubeTrailer = trailersList.find(video => video.site === "YouTube" && video.type === "Trailer");
+
+                    if (youtubeTrailer) {
+                        trailerData[item.id] = `https://www.youtube.com/watch?v=${youtubeTrailer.key}`;
+                    } else {
+                        trailerData[item.id] = null;
+                    }
+                } catch (err) {
+                    console.error("Error fetching trailer for:", item.id, err);
+                    trailerData[item.id] = null;
+                }
+            }
+
+            setTrailers(trailerData);
         }).catch((error) => {
             console.error("Error fetching trending movies:", error);
         });
@@ -78,6 +102,20 @@ const Carousel = () => {
         return genreIds.slice(0, 3).map(id => genres[id]).filter(Boolean).join(', ');
     };
 
+    const handleSaveMovieId = (id, mediaType) => {
+        localStorage.setItem('selectedMovieId', id);
+        localStorage.setItem('selectedMediaType', mediaType || 'movie'); // Default ke 'movie' jika tidak ada
+    }
+    const handleWatchNow = (id) => {
+        const url = trailers[id];
+        if (url) {
+            window.open(url, '_blank');
+        } else {
+            alert("Trailer tidak tersedia.");
+        }
+    };
+
+
     return (
         <div className='w-full h-[40vh] md:h-screen flex justify-center items-center shadow-2xl pt-14 md:pt-5'>
             <div className='w-full h-full overflow-hidden'>
@@ -119,12 +157,22 @@ const Carousel = () => {
                                         <div className="max-md:line-clamp-1">{genreText}</div>
                                     </div>
                                     <div className="md:mt-5 max-md:mt-2 flex items-center gap-2 md:gap-4 font-bold">
-                                        <button className="bg-red-700  md:py-2 max-md:py-0.5 md:px-6 max-md:px-4 rounded-full hover:bg-red-800 text-white text-[0.50rem] md:text-xs">
+                                        <button
+                                            className="bg-red-700 md:py-2 max-md:py-0.5 md:px-6 max-md:px-4 rounded-full hover:bg-red-800 text-white text-[0.50rem] md:text-xs"
+                                            onClick={() => handleWatchNow(movie.id)}
+                                        >
                                             <FontAwesomeIcon icon={faPlay} className="pr-1" /> Watch Now
                                         </button>
-                                        <button className="bg-gray-700  md:py-2 max-md:py-0.5 md:px-6 max-md:px-4 rounded-full hover:bg-gray-800 text-white text-[0.50rem] md:text-xs">
-                                            <FontAwesomeIcon icon={faInfoCircle} className="pr-1" /> Detail
-                                        </button>
+
+                                        <Link to={'/detail'}>
+                                            <button
+                                                className="bg-gray-700 md:py-2 max-md:py-0.5 md:px-6 max-md:px-4 rounded-full hover:bg-gray-800 text-white text-[0.50rem] md:text-xs"
+                                                onClick={() => handleSaveMovieId(movie.id, movie.media_type)}
+                                                title={movie.title || movie.name}
+                                            >
+                                                <FontAwesomeIcon icon={faInfoCircle} className="pr-1" /> Detail
+                                            </button>
+                                        </Link>
                                     </div>
                                 </div>
                             </div>

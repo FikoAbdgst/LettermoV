@@ -2,13 +2,14 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faStar, faPlay } from '@fortawesome/free-solid-svg-icons';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import MovieActionTooltip from '../home/MovieActionTooltip';
 
 const RecommendationSection = () => {
     const [recommendations, setRecommendations] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
+    const navigate = useNavigate(); // Add React Router's navigate hook
 
     useEffect(() => {
         const movieId = localStorage.getItem('selectedMovieId');
@@ -18,52 +19,101 @@ const RecommendationSection = () => {
             try {
                 setLoading(true);
 
-                // First, get current movie details to get genres
-                const movieResponse = await axios.get(
-                    `https://api.themoviedb.org/3/${mediaType}/${movieId}?api_key=${import.meta.env.VITE_APIKEY}`
+                // First, try to get official TMDB recommendations
+                const recommendationsResponse = await axios.get(
+                    `https://api.themoviedb.org/3/${mediaType}/${movieId}/recommendations?api_key=${import.meta.env.VITE_APIKEY}`
                 );
 
-                const currentMovie = movieResponse.data;
-                const currentGenreIds = currentMovie.genres.map(genre => genre.id);
+                let recommendedMovies = recommendationsResponse.data.results || [];
 
-                // Get a larger pool of movies by genre to filter from
-                const genreMoviesPromises = currentGenreIds.map(genreId =>
-                    axios.get(`https://api.themoviedb.org/3/discover/${mediaType}?api_key=${import.meta.env.VITE_APIKEY}&with_genres=${genreId}&page=${Math.floor(Math.random() * 5) + 1}`)
-                );
+                // Filter to only include movies with a rating of 5 or above
+                recommendedMovies = recommendedMovies.filter(movie => movie.vote_average >= 5);
 
-                const genreMoviesResponses = await Promise.all(genreMoviesPromises);
-                let allMovies = genreMoviesResponses.flatMap(response => response.data.results);
+                // If we have fewer than 10 movies from recommendations, supplement with similar genre movies
+                if (recommendedMovies.length < 10) {
+                    // Get current movie details to get genres
+                    const movieResponse = await axios.get(
+                        `https://api.themoviedb.org/3/${mediaType}/${movieId}?api_key=${import.meta.env.VITE_APIKEY}`
+                    );
 
-                // Remove duplicates and current movie
-                allMovies = allMovies.filter((movie, index, self) =>
-                    index === self.findIndex(m => m.id === movie.id) && movie.id !== parseInt(movieId)
-                );
+                    const currentMovie = movieResponse.data;
+                    const currentGenreIds = currentMovie.genres.map(genre => genre.id);
 
-                // Calculate average popularity
-                const avgPopularity = allMovies.reduce((sum, movie) => sum + movie.popularity, 0) / allMovies.length;
+                    // Try to get similar movies (another TMDB endpoint that might help)
+                    const similarResponse = await axios.get(
+                        `https://api.themoviedb.org/3/${mediaType}/${movieId}/similar?api_key=${import.meta.env.VITE_APIKEY}`
+                    );
 
-                // Filter by rating and above-average popularity
-                let filteredMovies = allMovies.filter(movie =>
-                    movie.vote_average >= 5 && movie.popularity >= avgPopularity
-                );
+                    let similarMovies = similarResponse.data.results || [];
 
-                // If we have fewer than 10 movies, relax the popularity constraint
-                if (filteredMovies.length < 10) {
-                    filteredMovies = allMovies.filter(movie => movie.vote_average >= 5);
+                    // Filter similar movies with rating 5+
+                    similarMovies = similarMovies.filter(movie =>
+                        movie.vote_average >= 5 &&
+                        movie.id !== parseInt(movieId) &&
+                        !recommendedMovies.some(rec => rec.id === movie.id)
+                    );
+
+                    // If still not enough, get movies by genre
+                    if (recommendedMovies.length + similarMovies.length < 10) {
+                        // How many more movies we need
+                        const neededCount = 10 - (recommendedMovies.length + similarMovies.length);
+
+                        // Get a larger pool of movies by genre to filter from
+                        const genreMoviesPromises = currentGenreIds.map(genreId =>
+                            axios.get(`https://api.themoviedb.org/3/discover/${mediaType}?api_key=${import.meta.env.VITE_APIKEY}&with_genres=${genreId}&page=${Math.floor(Math.random() * 5) + 1}`)
+                        );
+
+                        const genreMoviesResponses = await Promise.all(genreMoviesPromises);
+                        let genreMovies = genreMoviesResponses.flatMap(response => response.data.results);
+
+                        // Remove duplicates, current movie, and already included recommendations/similar
+                        genreMovies = genreMovies.filter(movie =>
+                            movie.vote_average >= 5 &&
+                            movie.id !== parseInt(movieId) &&
+                            !recommendedMovies.some(rec => rec.id === movie.id) &&
+                            !similarMovies.some(sim => sim.id === movie.id)
+                        );
+
+                        // Calculate average popularity
+                        const avgPopularity = genreMovies.reduce((sum, movie) => sum + movie.popularity, 0) / (genreMovies.length || 1);
+
+                        // Filter by rating and above-average popularity
+                        let filteredGenreMovies = genreMovies.filter(movie =>
+                            movie.popularity >= avgPopularity
+                        );
+
+                        // If we have fewer than needed, relax the popularity constraint
+                        if (filteredGenreMovies.length < neededCount) {
+                            filteredGenreMovies = genreMovies;
+                        }
+
+                        // Ensure each movie has at least one genre in common with current movie
+                        filteredGenreMovies = filteredGenreMovies.filter(movie => {
+                            const movieGenreIds = movie.genre_ids || (movie.genres ? movie.genres.map(g => g.id) : []);
+                            return movieGenreIds.some(id => currentGenreIds.includes(id));
+                        });
+
+                        // Shuffle and take what we need
+                        filteredGenreMovies = filteredGenreMovies.sort(() => 0.5 - Math.random()).slice(0, neededCount);
+
+                        // Combine all our sources
+                        const allRecommendations = [...recommendedMovies, ...similarMovies, ...filteredGenreMovies];
+
+                        // Sort by vote_average descending for quality results
+                        allRecommendations.sort((a, b) => b.vote_average - a.vote_average);
+
+                        // Take max 10 films
+                        setRecommendations(allRecommendations.slice(0, 10));
+                    } else {
+                        // Combine recommendations and similar
+                        const combinedRecommendations = [...recommendedMovies, ...similarMovies];
+                        setRecommendations(combinedRecommendations.slice(0, 10));
+                    }
+                } else {
+                    // If we have enough recommendations already, just use those
+                    setRecommendations(recommendedMovies.slice(0, 10));
                 }
 
-                // Check if each movie has at least one genre in common with current movie
-                filteredMovies = filteredMovies.filter(movie => {
-                    // Sometimes genre_ids is used, sometimes it's genres
-                    const movieGenreIds = movie.genre_ids || (movie.genres ? movie.genres.map(g => g.id) : []);
-                    return movieGenreIds.some(id => currentGenreIds.includes(id));
-                });
-
-                // Shuffle the array for randomization
-                filteredMovies = filteredMovies.sort(() => 0.5 - Math.random());
-
-                // Take at most 10 movies
-                setRecommendations(filteredMovies.slice(0, 10));
                 setLoading(false);
             } catch (err) {
                 console.error('Error fetching recommendations:', err);
@@ -75,9 +125,15 @@ const RecommendationSection = () => {
         fetchRecommendations();
     }, []);
 
+    // Updated function to handle movie selection and navigation
     const handleSelectMovie = (movie) => {
         localStorage.setItem('selectedMovieId', movie.id);
         localStorage.setItem('selectedMediaType', movie.first_air_date ? 'tv' : 'movie');
+
+        // Force reload of the current page to refresh data
+        navigate('/detail', { replace: true });
+        // Optional: reload the page to ensure all data refreshes
+        window.location.reload();
     };
 
     if (loading) {
@@ -149,15 +205,14 @@ const RecommendationSection = () => {
                                             No image
                                         </div>
                                     )}
-                                    <Link to="/detail">
-                                        <button
-                                            className="w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 absolute inset-0 m-auto opacity-0 bg-transparent group-hover:opacity-100 rounded-full border-2 sm:border-4 flex items-center justify-center"
-                                            onClick={() => handleSelectMovie(movie)}
-                                            title={movie.title || movie.name}
-                                        >
-                                            <FontAwesomeIcon icon={faPlay} className='text-base sm:text-xl md:text-2xl' />
-                                        </button>
-                                    </Link>
+                                    {/* Replace Link with direct button */}
+                                    <button
+                                        className="w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 absolute inset-0 m-auto opacity-0 bg-transparent group-hover:opacity-100 rounded-full border-2 sm:border-4 flex items-center justify-center"
+                                        onClick={() => handleSelectMovie(movie)}
+                                        title={movie.title || movie.name}
+                                    >
+                                        <FontAwesomeIcon icon={faPlay} className='text-base sm:text-xl md:text-2xl' />
+                                    </button>
                                 </div>
                                 <h3 className="mt-2 text-sm font-medium truncate">
                                     {title}

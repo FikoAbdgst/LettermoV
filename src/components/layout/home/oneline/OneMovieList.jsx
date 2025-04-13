@@ -49,9 +49,10 @@ const OneMovieList = ({ movies, setCurrentSlideMovie, currentSlideMovie, moviesP
     }, [movies, moviesPerSlide]);
 
     // Function to handle saving movie ID to localStorage
-    const handleSaveMovieId = (id) => {
+    const handleSaveMovieId = (id, mediaType) => {
         localStorage.setItem('selectedMovieId', id);
-    };
+        localStorage.setItem('selectedMediaType', mediaType || 'movie'); // Default ke 'movie' jika tidak ada
+    }
 
     // Conditional rendering for no movies found
     if (slidesMovie.length === 0) {
@@ -82,7 +83,7 @@ const OneMovieList = ({ movies, setCurrentSlideMovie, currentSlideMovie, moviesP
                                 />
                                 <Link to={'/detail'}>
                                     <button className="w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 absolute inset-0 m-auto opacity-0 bg-transparent group-hover:opacity-100 rounded-full border-2 sm:border-4 flex items-center justify-center"
-                                        onClick={() => handleSaveMovieId(movie.id)} title={movie.title}
+                                        onClick={() => handleSaveMovieId(movie.id, movie.media_type)} title={movie.title}
                                     >
                                         <FontAwesomeIcon icon={faPlay} className='text-base sm:text-xl md:text-2xl' />
                                     </button>

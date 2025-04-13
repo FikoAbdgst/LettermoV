@@ -20,94 +20,104 @@ const DetailCard = () => {
     const [watched, setWatched] = useState(false);
     const [activeTab, setActiveTab] = useState('details'); // New state for mobile tabs
     const tooltipRef = useRef(null);
+    const [isLoading, setIsLoading] = useState(true);
+    const [hasError, setHasError] = useState(false);
+    const [errorMessage, setErrorMessage] = useState('');
 
-    useEffect(() => {
+    const fetchData = async () => {
         const movieId = localStorage.getItem('selectedMovieId');
-        const mediaType = localStorage.getItem('selectedMediaType');
+        const mediaType = localStorage.getItem('selectedMediaType') || 'movie'; // Provide default
 
-        if (movieId && mediaType) {
-            const fetchDetails = async () => {
-                try {
-                    const response = await axios.get(`https://api.themoviedb.org/3/${mediaType}/${movieId}?api_key=${import.meta.env.VITE_APIKEY}`);
-                    setDataMovie(response.data);
-                } catch (error) {
-                    console.error(`Error fetching details: ${error.response ? error.response.data : error.message}`);
-                }
-            };
+        if (!movieId) {
+            // Try to get the ID from URL if not in localStorage
+            const pathSegments = window.location.pathname.split('/');
+            const potentialId = pathSegments[pathSegments.length - 1];
 
-            const fetchContentRating = async () => {
-                try {
-                    const response = await axios.get(`https://api.themoviedb.org/3/movie/${movieId}/release_dates?api_key=${import.meta.env.VITE_APIKEY}`);
-                    const usRelease = response.data.results.find(r => r.iso_3166_1 === 'US');
-                    if (usRelease) {
-                        const usRating = usRelease.release_dates.find(date => date.certification);
-                        setContentRating(usRating ? usRating.certification : 'Not Rated');
-                    }
-                } catch (error) {
-                    console.error('Error fetching content rating:', error);
-                }
-            };
-
-            const fetchTrailer = async () => {
-                try {
-                    const response = await axios.get(`https://api.themoviedb.org/3/${mediaType}/${movieId}/videos?api_key=${import.meta.env.VITE_APIKEY}`);
-                    const trailers = response.data.results.filter(video => video.type === 'Trailer');
-                    if (trailers.length > 0) {
-                        setTrailerUrl(`https://www.youtube.com/watch?v=${trailers[0].key}`);
-                    }
-                } catch (error) {
-                    console.error('Error fetching trailer:', error);
-                }
-            };
-
-            fetchDetails();
-            fetchContentRating();
-            fetchTrailer();
+            // Check if it's a valid ID (numeric)
+            if (potentialId && !isNaN(potentialId)) {
+                localStorage.setItem('selectedMovieId', potentialId);
+            }
         }
-    }, []);
-
-    useEffect(() => {
-        if (dataMovie) {
-            const fetchCredits = async () => {
-                const movieId = localStorage.getItem('selectedMovieId');
-                const mediaType = localStorage.getItem('selectedMediaType');
-                try {
-                    const response = await axios.get(`https://api.themoviedb.org/3/${mediaType}/${movieId}/credits?api_key=${import.meta.env.VITE_APIKEY}`);
-                    const crew = response.data.crew;
-                    const castData = response.data.cast;
-
-                    const director = crew.find(member => member.job === 'Director') || (dataMovie.created_by && dataMovie.created_by[0]);
-                    const writers = crew.filter(member =>
-                        member.job === 'Writer' ||
-                        member.job === 'Screenplay' ||
-                        member.job === 'Story' ||
-                        member.known_for_department === "Writing"
-                    );
-
-                    setDirector(director ? director.name : 'Directors not available');
-                    setWriters(writers.length > 0 ? writers.map(writer => writer.name) : ['Writers not available']);
-                    setCast(castData.length > 0 ? castData.slice(0, 5) : []);
-                } catch (error) {
-                    console.error('Error fetching credits:', error);
-                }
-            };
-
-            fetchCredits();
+        if (!movieId) {
+            setHasError(true);
+            setErrorMessage('No movie or media type selected');
+            setIsLoading(false);
+            return;
         }
-    }, [dataMovie]);
 
-    useEffect(() => {
-        const movieId = localStorage.getItem('selectedMovieId');
-        const mediaType = localStorage.getItem('selectedMediaType');
+        setIsLoading(true);
+        setHasError(false);
 
-        const fetchGalleryImages = async () => {
+        try {
+            // Fetch movie details
+            const detailsResponse = await axios.get(
+                `https://api.themoviedb.org/3/${mediaType}/${movieId}?api_key=${import.meta.env.VITE_APIKEY}`
+            );
+            setDataMovie(detailsResponse.data);
+
+            // Fetch content rating
             try {
-                const response = await axios.get(`https://api.themoviedb.org/3/${mediaType}/${movieId}/images?api_key=${import.meta.env.VITE_APIKEY}`);
-                const backdrops = response.data.backdrops;
-                const posters = response.data.posters;
+                const ratingResponse = await axios.get(
+                    `https://api.themoviedb.org/3/movie/${movieId}/release_dates?api_key=${import.meta.env.VITE_APIKEY}`
+                );
+                const usRelease = ratingResponse.data.results.find(r => r.iso_3166_1 === 'US');
+                if (usRelease) {
+                    const usRating = usRelease.release_dates.find(date => date.certification);
+                    setContentRating(usRating ? usRating.certification : 'Not Rated');
+                }
+            } catch (error) {
+                console.error('Error fetching content rating:', error);
+                // Continue despite this error
+            }
+
+            // Fetch trailer
+            try {
+                const trailerResponse = await axios.get(
+                    `https://api.themoviedb.org/3/${mediaType}/${movieId}/videos?api_key=${import.meta.env.VITE_APIKEY}`
+                );
+                const trailers = trailerResponse.data.results.filter(video => video.type === 'Trailer');
+                if (trailers.length > 0) {
+                    setTrailerUrl(`https://www.youtube.com/watch?v=${trailers[0].key}`);
+                }
+            } catch (error) {
+                console.error('Error fetching trailer:', error);
+                // Continue despite this error
+            }
+
+            // Fetch credits
+            try {
+                const creditsResponse = await axios.get(
+                    `https://api.themoviedb.org/3/${mediaType}/${movieId}/credits?api_key=${import.meta.env.VITE_APIKEY}`
+                );
+                const crew = creditsResponse.data.crew;
+                const castData = creditsResponse.data.cast;
+
+                const director = crew.find(member => member.job === 'Director') ||
+                    (detailsResponse.data.created_by && detailsResponse.data.created_by[0]);
+                const writers = crew.filter(member =>
+                    member.job === 'Writer' ||
+                    member.job === 'Screenplay' ||
+                    member.job === 'Story' ||
+                    member.known_for_department === "Writing"
+                );
+
+                setDirector(director ? director.name : 'Directors not available');
+                setWriters(writers.length > 0 ? writers.map(writer => writer.name) : ['Writers not available']);
+                setCast(castData.length > 0 ? castData.slice(0, 5) : []);
+            } catch (error) {
+                console.error('Error fetching credits:', error);
+                // Continue despite this error
+            }
+
+            // Fetch gallery images
+            try {
+                const galleryResponse = await axios.get(
+                    `https://api.themoviedb.org/3/${mediaType}/${movieId}/images?api_key=${import.meta.env.VITE_APIKEY}`
+                );
+                const backdrops = galleryResponse.data.backdrops;
+                const posters = galleryResponse.data.posters;
 
                 if (backdrops.length > 0) {
-                    // Shuffle backdrops and select one at random
                     const shuffledBackdrops = backdrops.sort(() => 0.5 - Math.random());
                     setBackdropImage(shuffledBackdrops[0]);
                 }
@@ -119,10 +129,29 @@ const DetailCard = () => {
                 }
             } catch (error) {
                 console.error('Error fetching gallery images:', error);
+                // Continue despite this error
             }
-        };
 
-        fetchGalleryImages();
+        } catch (error) {
+            console.error('Error fetching movie details:', error);
+            setHasError(true);
+            setErrorMessage(error.response?.data?.status_message || 'Error loading movie details');
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    // Add useEffect to extract ID from URL on component mount
+    useEffect(() => {
+        // Get ID from URL if present
+        const pathSegments = window.location.pathname.split('/');
+        const potentialId = pathSegments[pathSegments.length - 1];
+
+        if (potentialId && !isNaN(potentialId)) {
+            localStorage.setItem('selectedMovieId', potentialId);
+        }
+
+        fetchData();
     }, []);
 
     const formatRuntime = (runtime) => {
@@ -226,20 +255,22 @@ const DetailCard = () => {
 
     // Render the active tab content for mobile
     const renderActiveTabContent = () => {
+        if (!dataMovie) return null;
+
         if (activeTab === 'details') {
             return (
                 <div className='w-full px-4 md:hidden'>
                     <h1 className='pb-3 text-lg font-medium'>Movie Details</h1>
                     <div className='text-sm'>
-                        <h1 className='py-2 flex justify-between'><span className="font-medium">Director:</span> <span className='text-gray-400'>{director}</span></h1>
-                        <h1 className='py-2 flex justify-between items-start'><span className="font-medium">Writers:</span> <span className='text-gray-400 text-right'>{displayWriters()}</span></h1>
-                        <h1 className='py-2 flex justify-between'><span className="font-medium">Country:</span> <span className='text-gray-400 text-right'>{dataMovie.production_countries ? dataMovie.production_countries.map(country => country.name).join(', ') : 'Country not available'}</span></h1>
-                        <h1 className='py-2 flex justify-between'><span className="font-medium">Language:</span> <span className='text-gray-400 text-right'>{dataMovie.spoken_languages ? dataMovie.spoken_languages.map(language => language.english_name).join(', ') : 'Language not available'}</span></h1>
-                        <h1 className='py-2 flex justify-between'><span className="font-medium">Release Date:</span> <span className='text-gray-400'>{dataMovie.release_date || dataMovie.first_air_date}</span></h1>
+                        <h1 className='py-2 flex justify-between'><span className="font-medium">Director:</span> <span className='text-gray-400'>{director || 'N/A'}</span></h1>
+                        <h1 className='py-2 flex justify-between items-start'><span className="font-medium">Writers:</span> <span className='text-gray-400 text-right'>{writers.length > 0 ? displayWriters() : 'N/A'}</span></h1>
+                        <h1 className='py-2 flex justify-between'><span className="font-medium">Country:</span> <span className='text-gray-400 text-right'>{dataMovie.production_countries && dataMovie.production_countries.length > 0 ? dataMovie.production_countries.map(country => country.name).join(', ') : 'N/A'}</span></h1>
+                        <h1 className='py-2 flex justify-between'><span className="font-medium">Language:</span> <span className='text-gray-400 text-right'>{dataMovie.spoken_languages && dataMovie.spoken_languages.length > 0 ? dataMovie.spoken_languages.map(language => language.english_name).join(', ') : 'N/A'}</span></h1>
+                        <h1 className='py-2 flex justify-between'><span className="font-medium">Release Date:</span> <span className='text-gray-400'>{dataMovie.release_date || dataMovie.first_air_date || 'N/A'}</span></h1>
                     </div>
                     <div className='mt-6 mb-4 border-t py-2'>
                         <h1 className='text-lg font-medium my-2'>StoryLine</h1>
-                        <p className='text-sm leading-relaxed text-gray-300'>{dataMovie.overview}</p>
+                        <p className='text-sm leading-relaxed text-gray-300'>{dataMovie.overview || 'No storyline available'}</p>
                     </div>
                 </div>
             );
@@ -314,7 +345,28 @@ const DetailCard = () => {
             </button>
             <div className="w-full h-1/2 absolute bottom-0 bg-gradient-to-t from-zinc-900"></div>
             <div className="w-full h-12 absolute -bottom-12 bg-gradient-to-b from-zinc-900"></div>
-            {dataMovie ? (
+
+            {isLoading ? (
+                <div className="flex justify-center items-center min-h-[60vh]">
+                    <div className="bg-zinc-800 p-6 rounded-lg text-center">
+                        <p className="text-white text-lg mb-2">Loading movie details...</p>
+                        <div className="w-8 h-8 border-t-2 border-b-2 border-white rounded-full animate-spin mx-auto"></div>
+                    </div>
+                </div>
+            ) : hasError ? (
+                <div className="flex justify-center items-center min-h-[60vh]">
+                    <div className="bg-zinc-800 p-6 rounded-lg text-center max-w-md">
+                        <p className="text-white text-lg mb-2">Failed to load movie details</p>
+                        <p className="text-gray-400 mb-4">{errorMessage}</p>
+                        <button
+                            className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg"
+                            onClick={fetchData}
+                        >
+                            Try Again
+                        </button>
+                    </div>
+                </div>
+            ) : dataMovie ? (
                 <>
                     <div className='w-full h-full'>
                         {dataMovie.backdrop_path ? (
@@ -538,8 +590,13 @@ const DetailCard = () => {
             ) : (
                 <div className="flex justify-center items-center min-h-[60vh]">
                     <div className="bg-zinc-800 p-6 rounded-lg text-center">
-                        <p className="text-white text-lg mb-2">Loading movie details...</p>
-                        <div className="w-8 h-8 border-t-2 border-b-2 border-white rounded-full animate-spin mx-auto"></div>
+                        <p className="text-white text-lg mb-2">No movie data found</p>
+                        <button
+                            className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg mt-4"
+                            onClick={() => window.history.back()}
+                        >
+                            Go Back
+                        </button>
                     </div>
                 </div>
             )}

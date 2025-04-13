@@ -1,5 +1,5 @@
 import './App.css';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import React from 'react';
 import Movie from './components/pages/Movie';
 import Series from './components/pages/Series';
@@ -15,7 +15,9 @@ function App() {
         <Route path="/movie" element={<Movie />} />
         <Route path="/series" element={<Series />} />
         <Route path="/detail" element={<Detail />} />
+        <Route path="/detail/:id" element={<Detail />} /> {/* Add this line */}
         <Route path="/search" element={<SearchResults />} />
+        <Route path="*" element={<Navigate to="/" />} /> {/* Add this catch-all route */}
       </Routes>
     </Router>
   );
